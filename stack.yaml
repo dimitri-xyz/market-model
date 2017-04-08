@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- '.'
+- 'dep/bitcoin-type'
+extra-deps: []
+resolver: lts-8.3
