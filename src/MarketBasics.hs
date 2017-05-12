@@ -111,7 +111,7 @@ getDoneVol order = case aConfirmation order of
     Conf { mExecuted = Just (_, vol)} -> vol
     _ -> error $ "Cannot determine already executed volume in order without volume info. " ++ show order
 
----------  
+---------
 -- Market orders can be larger than the whole orderbook or limited by funds
 getOpenVol :: Order Confirmation -> Volume
 -- limit order: ok
@@ -136,8 +136,8 @@ getExecutedPrice order = case aConfirmation order of
 attachConfirmation :: Order a -> Confirmation -> Order Confirmation
 attachConfirmation order conf = order { aConfirmation = conf }
 
-limitOrderMatches :: OrderSide -> Price -> Volume -> Maybe (Order a) -> Bool
-limitOrderMatches oSide' p v (Just order@(LimitOrder{})) =
+limitOrderMatches :: OrderSide -> Price -> Volume -> Order a -> Bool
+limitOrderMatches oSide' p v order@(LimitOrder{}) =
     oSide       order           == oSide' &&
     limitVolume order           == v      &&
     round5dp (limitPrice order) == round5dp p
