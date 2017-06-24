@@ -3,7 +3,7 @@ module Main where
 import Test.HUnit
 
 import Market.Types
-import Market.Basics
+import Market.Util
 import Razao.Util
 
 ---------------------------------------

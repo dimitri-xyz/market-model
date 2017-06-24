@@ -1,15 +1,16 @@
-module Market.Basics where
+module Market.Util where
 
 import Data.List.Extended
 import Razao.Util
 import Market.Types
 
-{- some conventions in this file in the order of function arguments and in pairs
-  Asks before Bids          e.g. totalValue asks bids = ...
-  Prices before Volumes     e.g. (price, volume)
--}
+{-------------------------------------------------------------------------------
+Conventions used in this file in the order of function arguments and in pairs:
+1. Asks before Bids          e.g. totalValue asks bids = ...
+2. Prices before Volumes     e.g. (price, volume)
+----------------------------------------------------------------------------- -}
 
-{--------------------------------------------------------------------
+{-------------------------------------------------------------------------------
 
 DOUBLE AUCTION
 
@@ -56,8 +57,7 @@ asks:                           returned list:
   (Price 500, Volume  1 ),        (210+500=710,    Volume 1.5),
   (Price 550, Volume 0.2),        (210+500+110=820,Volume 1.7)]
 
-
--}
+----------------------------------------------------------------------------- -}
 
 
 ----------------------------------------------
@@ -70,8 +70,8 @@ showTopN n b =
         asks' = reverse $ take n $ asks b
         formatRow :: Quote a -> String
         formatRow x = show (side x) ++
-            " vol: BTC " ++ show (volume x) ++
-            "   price: " ++ show (price  x) ++ "            \n"
+            "   vol: " ++ show (volume x) ++
+            " price: " ++ show (price  x) ++ "            \n"
 
      in show (counter b) ++
             "                                             \n" ++
