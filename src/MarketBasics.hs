@@ -4,7 +4,8 @@ module MarketBasics (
 
 )where
 
-import Util
+import Data.List.Extended
+import Razao.Util
 import MarketTypes
 
 {- some conventions in this file in the order of function arguments and in pairs

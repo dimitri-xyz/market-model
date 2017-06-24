@@ -9,7 +9,7 @@ module MarketTypes (
 
 )where
 
-import Util
+import Razao.Util
 import Bitcoin
 
 import Data.Word

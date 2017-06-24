@@ -1,10 +1,10 @@
 module Main where
 
-import           Test.HUnit
+import Test.HUnit
 
-import           MarketTypes
-import           MarketBasics
-import           Util
+import MarketTypes
+import MarketBasics
+import Razao.Util
 
 ---------------------------------------
 main :: IO Counts
