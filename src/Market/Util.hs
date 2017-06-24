@@ -269,35 +269,37 @@ Function is made complicated by:
 -}
 
 -- This assumes v is non-negative
-totalValue :: Volume -> [(Double,Volume)] -> Either (Double,Volume) (Double,Volume)
+totalValue :: Volume -> [(Cost, Volume)] -> Either (Cost, Volume) (Cost, Volume)
 totalValue 0 _  = Right (0, 0)
 totalValue _ [] = Left  (0, 0)
 -- list is not empty and v is not zero if we get here
-totalValue vol xs = let
-                      v = realToFrac vol
-                      isNotEnoughVolume (_x, y) = y < vol -- strict comparison
-                      (vs,ws) = span isNotEnoughVolume xs
-                  in case (vs,ws) of
-                        (_,[]) ->    -- the *strict* less than comparison implies that
-                                     -- all volume available is *not* sufficient to fulfill requested volume
-                                     Left (last xs)
+totalValue vol xs =
+  let v = realToFrac vol
+      isNotEnoughVolume (_x, y) = y < vol -- strict comparison
+      (vs,ws) = span isNotEnoughVolume xs
+   in case (vs,ws) of
+      (_,[]) ->
+          -- the *strict* less than comparison implies that
+          -- all volume available is *not* sufficient to fulfill requested volume
+          Left (last xs)
 
-                        ([],w:_wt) -> -- first bid in list is "larger than or equal to" requested volume
-                                     let (p1,v1) = (0, 0)
-                                         (p2,v2) = w
-                                         dp = p2 - p1
-                                         dv = realToFrac (v2 - v1)
-                                         tp = p1 + (dp/dv) * (v - realToFrac v1) -- total value
-                                     in Right ( tp , realToFrac v )
+      ([],w:_wt) ->
+          -- first bid in list is "larger than or equal to" requested volume
+          let (p1,v1) = (0, 0)
+              (p2,v2) = w
+              dp = p2 - p1
+              dv = realToFrac (v2 - v1)
+              tp = p1 + (dp/dv) * (v - realToFrac v1) -- total value
+           in Right ( tp , realToFrac v )
 
-                        (vs,w:_wt) -> -- requested volume falls between two bids (may equal second one)
-                                     let (p1,v1) = last vs
-                                         (p2,v2) = w
-                                         dp = p2 - p1
-                                         dv = realToFrac (v2 - v1)
-                                         tp = p1 + (dp/dv) * (v - realToFrac v1) -- total value
-                                     in Right ( tp , realToFrac v )
-
+      (vs,w:_wt) ->
+          -- requested volume falls between two bids (may equal second one)
+          let (p1,v1) = last vs
+              (p2,v2) = w
+              dp = p2 - p1
+              dv = realToFrac (v2 - v1)
+              tp = p1 + (dp/dv) * (v - realToFrac v1) -- total value
+           in Right ( tp , realToFrac v )
 
 --------------------------------------------------------------------------------
 {-
