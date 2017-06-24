@@ -2,8 +2,8 @@ module Main where
 
 import Test.HUnit
 
-import MarketTypes
-import MarketBasics
+import Market.Types
+import Market.Basics
 import Razao.Util
 
 ---------------------------------------
@@ -13,8 +13,7 @@ main = runTestTT tests
 tests :: Test
 tests =
   TestList
-    [ TestLabel "Rounding/Flooring works"      round5dpTest
-    , TestLabel "Orderbook equality works"     quoteBookEq
+    [ TestLabel "Orderbook equality works"     quoteBookEq
     , TestLabel "Aggregate and disaggregate"   (roundTripAggregation asksSample)
     ]
 
@@ -22,15 +21,6 @@ tests =
 -- FIX ME! I'm getting double precision rounding error problems in aggregation/disaggregation.
 asksSample :: [(Price, Volume)]
 asksSample = [(256, 0.5),(512, 1),(576, 0.25)]
-
-round5dpTest :: Test
-round5dpTest = TestCase $ do
-  assertEqual "Rounding to 2dp produces desired result"
-    (10.99 :: Double)    (round2dp 10.987654321)
-  assertEqual "Rounding to 5dp produces desired result"
-    (10.98765 :: Double) (round5dp 10.987654321)
-  assertEqual "Flooring to 2dp produces desired result"
-    (10.98 :: Double)    (floor2dp 10.987654321)
 
 roundTripAggregation :: [(Price,Volume)] -> Test
 roundTripAggregation samples = TestCase $

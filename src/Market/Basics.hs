@@ -1,12 +1,8 @@
-module MarketBasics (
-
-    module MarketBasics
-
-)where
+module Market.Basics where
 
 import Data.List.Extended
 import Razao.Util
-import MarketTypes
+import Market.Types
 
 {- some conventions in this file in the order of function arguments and in pairs
   Asks before Bids          e.g. totalValue asks bids = ...

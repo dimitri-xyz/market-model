@@ -2,12 +2,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module MarketTypes (
-
-    module MarketTypes,
-    Bitcoin(..)
-
-)where
+module Market.Types
+  ( module Market.Types
+  , Bitcoin(..)
+  )
+  where
 
 import Razao.Util
 import Bitcoin
