@@ -154,11 +154,17 @@ quoteToPair (Quote {price = p, volume = v }) = (p, v)
 aggregate :: [(Price,Volume)] -> [(Cost,Volume)]  -- FIX ME! I should be using different  Units here
 aggregate xs = aggregate' 0 0 xs
   where
-    aggregate' :: Price -> Volume -> [(Price,Volume)] -> [(Cost,Volume)]
+    aggregate'
+      :: (Fractional cost, Real vol, RealFrac price)
+      => cost
+      -> vol
+      -> [(price, vol)]
+      -> [(cost,  vol)]
     aggregate' _ _ [] = []
-    aggregate' accX accY ((x,y):ls) = let accX' = accX + x * realToFrac y
-                                          accY' = accY + y
-                                          in  (accX',accY') : aggregate' accX' accY' ls
+    aggregate' accC accV ((p,v):ls) =
+      let accC' = accC + realToFrac (p * realToFrac v)
+          accV' = accV + v
+       in (accC',accV') : aggregate' accC' accV' ls
 
 
 -----------------------
@@ -166,13 +172,19 @@ aggregate xs = aggregate' 0 0 xs
 -- List assumed to be *monotonically strictly increasing* in volume and cost
 -- **zero volume entries are NOT allowed even as first entry**
 disaggregate :: [(Cost,Volume)] -> [(Price,Volume)]  -- FIX ME! I should be using Units here
-disaggregate xs = disaggregate' (0 , 0) xs
+disaggregate xs = disaggregate' 0 0 xs
   where
-    disaggregate' :: (Cost,Volume) -> [(Cost,Volume)] -> [(Price,Volume)]
-    disaggregate' _ [] = []
-    disaggregate' (initX,initY) ((x,y):ls) = let y' =  y - initY
-                                                 x' = (x - initX) / realToFrac y'
-                                              in (x',y') : disaggregate' (x,y) ls
+    disaggregate'
+      :: (Fractional price, Real vol, RealFrac cost)
+      => cost
+      -> vol
+      -> [(cost,  vol)]
+      -> [(price, vol)]
+    disaggregate' _ _ [] = []
+    disaggregate' initC initV ((c,v):ls) =
+      let p' = realToFrac ( (c - initC) / realToFrac v')
+          v' =  v - initV
+       in (p', v') : disaggregate' c v ls
 
 -----------------------
 -- This is only used in Tax calculations right now. It's a little simpler than aggregate

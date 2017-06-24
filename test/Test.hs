@@ -4,7 +4,6 @@ import Test.HUnit
 
 import Market.Types
 import Market.Util
-import Razao.Util
 
 ---------------------------------------
 main :: IO Counts
