@@ -14,6 +14,7 @@ tests =
   TestList
     [ TestLabel "Orderbook equality works"     quoteBookEq
     , TestLabel "Aggregate and disaggregate"   (roundTripAggregation asksSample)
+    , TestLabel "Return Total Value"           (getTotalValue asksSample)
     ]
 
 ---------------------------- TESTS --------------------------------
@@ -51,5 +52,7 @@ ask1 = Quote { side = Ask, price = 1000, volume = 1,   qtail = ()}
 ask2 = Quote { side = Ask, price = 1001, volume = 1,   qtail = ()}
 ask3 = Quote { side = Ask, price = 1000, volume = 1.1, qtail = ()}
 
-
--- FIX ME! totalValue test missing
+getTotalValue :: [(Price,Volume)] -> Test
+getTotalValue samples = TestCase $ do
+    assertEqual "Returned wrong value for requested volume"
+        (Right (256*0.5+512*1+576*0.1, 1.6)) (totalValue 1.6 $ aggregate samples)

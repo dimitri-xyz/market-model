@@ -266,40 +266,36 @@ Function is made complicated by:
   - the fact that the given volume may be in between two points on the list.
     In this case, we have to do some interpolation to find the right value.
     (This is actually the most common case)
+
+We assume vol parameter is non-negative.
 -}
 
--- This assumes v is non-negative
-totalValue :: Volume -> [(Cost, Volume)] -> Either (Cost, Volume) (Cost, Volume)
+totalValue
+  :: (Ord vol, Real vol, Fractional cost)
+  => vol
+  -> [(cost, vol)]
+  -> Either (cost, vol) (cost, vol)
 totalValue 0 _  = Right (0, 0)
 totalValue _ [] = Left  (0, 0)
 -- list is not empty and v is not zero if we get here
 totalValue vol xs =
-  let v = realToFrac vol
-      isNotEnoughVolume (_x, y) = y < vol -- strict comparison
-      (vs,ws) = span isNotEnoughVolume xs
-   in case (vs,ws) of
+    case (notEnoughs, overs) of
       (_,[]) ->
-          -- the *strict* less than comparison implies that
+          -- the *strict* less than comparison in `isNotEnoughVolume` implies that
           -- all volume available is *not* sufficient to fulfill requested volume
           Left (last xs)
+      (lows,h:_) ->
+          -- either first bid in list is "larger than or equal to" requested volume
+          -- or requested volume falls between two bids (may equal second one)
+          let (c1,v1) = if null lows then (0,0) else last lows
+              (c2,v2) = h
+              totalCost = c1 + (c2 - c1) * realToFrac (toRational (vol - v1) / toRational (v2 - v1))
+           in Right (totalCost, vol)
+  where
+    -- v = realToFrac vol
+    isNotEnoughVolume (_, curV) = curV < vol -- strict comparison
+    (notEnoughs, overs) = span isNotEnoughVolume xs
 
-      ([],w:_wt) ->
-          -- first bid in list is "larger than or equal to" requested volume
-          let (p1,v1) = (0, 0)
-              (p2,v2) = w
-              dp = p2 - p1
-              dv = realToFrac (v2 - v1)
-              tp = p1 + (dp/dv) * (v - realToFrac v1) -- total value
-           in Right ( tp , realToFrac v )
-
-      (vs,w:_wt) ->
-          -- requested volume falls between two bids (may equal second one)
-          let (p1,v1) = last vs
-              (p2,v2) = w
-              dp = p2 - p1
-              dv = realToFrac (v2 - v1)
-              tp = p1 + (dp/dv) * (v - realToFrac v1) -- total value
-           in Right ( tp , realToFrac v )
 
 --------------------------------------------------------------------------------
 {-
