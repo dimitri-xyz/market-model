@@ -224,28 +224,32 @@ findProfitableVolume :: [Quote a] -> [Quote b] -> Volume
 findProfitableVolume asks' bids' = findCrossover (map quoteToPair asks') (map quoteToPair bids')
 
 
-findCrossover :: [(Double,Volume)] -> [(Double,Volume)] -> Volume
+findCrossover
+    :: (Ord price, Num vol, Ord vol)
+    => [(price, vol)]
+    -> [(price, vol)]
+    -> vol
 findCrossover [] _ = 0  -- no more supply or demand
 findCrossover _ [] = 0
 
 findCrossover (ask:asks) (bid:bids)
-        | fst ask < fst bid =   --- (Price, Volume)
-                let
-                    pa = fst ask -- price of ask
-                    va = snd ask -- volume of ask
-                    pb = fst bid -- price of bid
-                    vb = snd bid -- volume of bid
+  | fst ask < fst bid =   --- (Price, Volume)
+      let
+          pa = fst ask -- price of ask
+          va = snd ask -- volume of ask
+          pb = fst bid -- price of bid
+          vb = snd bid -- volume of bid
 
-                in  case compare va vb of
-                          EQ -> va + findCrossover asks bids     -- perfect volume match
+       in case compare va vb of
+            EQ -> va + findCrossover asks bids     -- perfect volume match
 
-                          LT -> let leftover = ( pb , vb - va )  -- va was smaller, so we have left over volume in bids
-                                in  va + findCrossover asks (leftover:bids)
+            LT -> let leftover = ( pb , vb - va )  -- va was smaller, so we have left over volume in bids
+                   in va + findCrossover asks (leftover:bids)
 
-                          GT -> let leftover = ( pa , va - vb )  -- vb was smaller, so we have left over volume in asks
-                                in  vb + findCrossover (leftover:asks) bids
+            GT -> let leftover = ( pa , va - vb )  -- vb was smaller, so we have left over volume in asks
+                   in vb + findCrossover (leftover:asks) bids
 
-        | otherwise = 0
+  | otherwise = 0
 
 
 --------------------------------------------------------------------------------
