@@ -147,11 +147,11 @@ limitOrderMatches _s _p _v _ = False
 aggregateQuotes :: [Quote a] -> [(Double, Volume)]
 aggregateQuotes xs = aggregate $ map quoteToPair xs
 
-quoteToPair :: Quote a -> (Double, Volume)
+quoteToPair :: Quote a -> (Price, Volume)
 quoteToPair (Quote {price = p, volume = v }) = (p, v)
 
 -- | Calculates "cumulative volume book"
-aggregate :: [(Price,Volume)] -> [(Cost,Volume)]  -- FIX ME! I should be using different  Units here
+aggregate :: (Fractional cost, Real vol, RealFrac price) => [(price, vol)] -> [(cost, vol)]
 aggregate xs = aggregate' 0 0 xs
   where
     aggregate'
@@ -171,7 +171,7 @@ aggregate xs = aggregate' 0 0 xs
 -- FIX ME! this and `aggregate` are folds.
 -- List assumed to be *monotonically strictly increasing* in volume and cost
 -- **zero volume entries are NOT allowed even as first entry**
-disaggregate :: [(Cost,Volume)] -> [(Price,Volume)]  -- FIX ME! I should be using Units here
+disaggregate :: (Fractional price, Real vol, RealFrac cost) => [(cost, vol)] -> [(price, vol)]
 disaggregate xs = disaggregate' 0 0 xs
   where
     disaggregate'
@@ -311,9 +311,10 @@ This function makes bids offer less money and asks request more money.
 In other words, they make things more expensive and mimic the fees we pay.
 -}
 shave :: Double -> Quote a -> Quote a
-shave fee quote = case quote of
-                       Quote Bid p v t -> Quote Bid (p/fee) v t
-                       Quote Ask p v t -> Quote Ask (p*fee) v t
+shave fee quote =
+  case quote of
+    Quote Bid p v t -> Quote Bid (realToFrac (realToFrac p / fee)) v t
+    Quote Ask p v t -> Quote Ask (realToFrac (realToFrac p * fee)) v t
 
 
 --------------------------------------------------------------------------------
@@ -325,40 +326,40 @@ Assuming the percentage fees are given by 'fees' (this is a percentage NOT Dolla
 and the money wishes to have a rate of return of at least 'margin' per transaction.
 -}
 
+-- FIX ME! This is clearly procedural... needs some TLC
 -- | availableProfit :: fee -> margin -> asks -> bids -> (profit,volume,cost)
-availableProfit :: Double -> Double -> [Quote a] -> [Quote b] -> (Double, Volume, Double)
-availableProfit fee margin asks bids = let
+availableProfit :: Double -> Double -> [Quote a] -> [Quote b] -> (Cost, Volume, Cost)
+availableProfit fee margin asks bids = (tap , vtap, cost)
+  where
+    -- Calculate initial estimate for profitable trading volume
+    -- at requested margin of return on investment.
+    profitableBids     = map (shave fee) bids
+    profitableAtMargin = map (shave margin) profitableBids
+    -- initial estimate (may be smaller)
+    vtap'              = findProfitableVolume asks profitableAtMargin
 
-                    -- Calculate initial estimate for profitable trading volume
-                    -- at requested margin of return on investment.
-                    profitableBids     = map (shave fee) bids
-                    profitableAtMargin = map (shave margin) profitableBids
-                    -- initial estimate (may be smaller)
-                    vtap'              = findProfitableVolume asks profitableAtMargin
+    -- Calculate available volumes
+    aggCosts           = aggregateQuotes asks
+    aggRevenues        = aggregateQuotes profitableBids
+    ( _ , cVol')       = case (totalValue vtap' aggCosts) of
+                            Left  costPair -> costPair
+                            Right costPair -> costPair
+    ( _ , rVol')       = case (totalValue vtap' aggRevenues) of
+                            Left  revPair -> revPair
+                            Right revPair -> revPair
+    -- viable volume = minimum of 3 available volumes
+    vtap               = minimum [vtap', cVol', rVol']
 
-                    -- Calculate available volumes
-                    aggCosts           = aggregateQuotes asks
-                    aggRevenues        = aggregateQuotes profitableBids
-                    ( _ , cVol')       = case (totalValue vtap' aggCosts) of
-                                            Left  costPair -> costPair
-                                            Right costPair -> costPair
-                    ( _ , rVol')       = case (totalValue vtap' aggRevenues) of
-                                            Left  revPair -> revPair
-                                            Right revPair -> revPair
-                    -- viable volume = minimum of 3 available volumes
-                    vtap               = minimum [vtap', cVol', rVol']
+    -- recalculate with correct volume
+    ( cost , _ )    = case (totalValue vtap aggCosts) of
+                            Left  costPair -> costPair
+                            Right costPair -> costPair
+    ( revenue , _ ) = case (totalValue vtap aggRevenues) of
+                            Left  revPair -> revPair
+                            Right revPair -> revPair
 
-                    -- recalculate with correct volume
-                    ( cost , _ )    = case (totalValue vtap aggCosts) of
-                                            Left  costPair -> costPair
-                                            Right costPair -> costPair
-                    ( revenue , _ ) = case (totalValue vtap aggRevenues) of
-                                            Left  revPair -> revPair
-                                            Right revPair -> revPair
+    tap                = revenue - cost
 
-                    tap                = revenue - cost
-
-                    in (tap , vtap, cost)
 
 ---------------------------------------
 -- | Returns how much we have to pay or can get (i.e. the total cost or revenue) to buy/sell 1 Bitcoin
