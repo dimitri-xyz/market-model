@@ -1,7 +1,6 @@
 module Market.Util where
 
 import Data.List.Extended
-import Razao.Util
 import Market.Types
 
 {-------------------------------------------------------------------------------
@@ -64,14 +63,14 @@ asks:                           returned list:
 -- | console debug output
 -- show counter and top N bids and asks
 -- prints a total of (2*n+2) lines
-showTopN :: Show b => Int -> QuoteBook a b -> String
+showTopN :: (Show p, Show v, Show c) => Int -> QuoteBook p v qtail c -> String
 showTopN n b =
     let bids' =           take n $ bids b
         asks' = reverse $ take n $ asks b
-        formatRow :: Quote a -> String
+        formatRow :: (Show p, Show v) => Quote p v a -> String
         formatRow x = show (side x) ++
-            "   vol: " ++ show (volume x) ++
-            " price: " ++ show (price  x) ++ "            \n"
+            " " ++ show (volume x) ++
+            " " ++ show (price  x) ++ "            \n"
 
      in show (counter b) ++
             "                                             \n" ++
@@ -80,37 +79,44 @@ showTopN n b =
             concatMap formatRow bids'
 ----------------------------------------------
 
-
-isActive :: Order Confirmation -> Bool
+isActive
+    :: (Show p, Show v, Show c)
+    => Order p v c (Confirmation p v) -> Bool
 isActive o =
   case mOrderStatus (aConfirmation o) of
     Just st  -> st == Active || st == ActivePartiallyExecuted
     Nothing -> error $ "Order Status unknown. Cannot determine if order is active. " ++ show o
 
-isBid :: Order a -> Bool
+isBid :: Order price vol cost ack -> Bool
 isBid = (== Bid) . oSide
 
-isAsk :: Order a -> Bool
+isAsk :: Order price vol cost ack -> Bool
 isAsk = (== Ask) . oSide
 
-isLimitOrder :: Order a -> Bool
+isLimitOrder :: Order price vol cost ack -> Bool
 isLimitOrder LimitOrder{} = True
 isLimitOrder _            = False
 
-getOrderID :: Order Confirmation -> OrderID
+getOrderID :: Order price vol cost (Confirmation price vol) -> OrderID
 getOrderID = orderID . aConfirmation
 
-sameOrderID :: OrderID -> Order Confirmation -> Bool
+sameOrderID :: OrderID -> Order price vol cost (Confirmation price vol) -> Bool
 sameOrderID oid order = (oid == getOrderID order)
 
-getDoneVol :: Order Confirmation -> Volume
+getDoneVol
+    :: (Show p, Show v, Show c)
+    => Order p v c (Confirmation p v)
+    -> Vol v
 getDoneVol order = case aConfirmation order of
     Conf { mExecuted = Just (_, vol)} -> vol
     _ -> error $ "Cannot determine already executed volume in order without volume info. " ++ show order
 
 ---------
 -- Market orders can be larger than the whole orderbook or limited by funds
-getOpenVol :: Order Confirmation -> Volume
+getOpenVol
+    :: (Show price, Show vol, Show cost, Num vol)
+    => Order price vol cost (Confirmation price vol)
+    -> Vol vol
 -- limit order: ok
 getOpenVol order@(LimitOrder{}) = limitVolume order - getDoneVol order
 
@@ -121,45 +127,54 @@ getOpenVol order@(MarketOrder{volumeAndOrFunds = Left v}) = v - getDoneVol order
 getOpenVol order@(MarketOrder{volumeAndOrFunds = Right (Just v, _)}) = v - getDoneVol order
 
 -- market order *only* limited by Funds: error
-getOpenVol order@(MarketOrder{volumeAndOrFunds = Right (Just v, _)}) =
+getOpenVol order@(MarketOrder{volumeAndOrFunds = Right (Nothing, _)}) =
   error $ "Cannot determine open volume for market order without volume constraint. " ++ show order
 ---------
 
-getExecutedPrice :: Order Confirmation -> Price
+getExecutedPrice
+    :: (Show price, Show vol, Show cost)
+    => Order price vol cost (Confirmation price vol)
+    -> Price price
 getExecutedPrice order = case aConfirmation order of
     Conf { mExecuted = Just (p, _)} -> p
     _ -> error $ "Cannot determine already executed ave price in order without price info. " ++ show order
 
-attachConfirmation :: Order a -> Confirmation -> Order Confirmation
+attachConfirmation :: Order p v c ack -> (Confirmation p v) -> Order p v c (Confirmation p v)
 attachConfirmation order conf = order { aConfirmation = conf }
 
-limitOrderMatches :: OrderSide -> Price -> Volume -> Order a -> Bool
+limitOrderMatches
+    :: (Eq p, Eq v)
+    => OrderSide
+    -> Price p
+    -> Vol v
+    -> Order p v c a
+    -> Bool
 limitOrderMatches oSide' p v order@(LimitOrder{}) =
-    oSide       order           == oSide' &&
-    limitVolume order           == v      &&
-    round5dp (limitPrice order) == round5dp p
+    oSide       order == oSide' &&
+    limitPrice  order == p      &&
+    limitVolume order == v
 
 limitOrderMatches _s _p _v _ = False
 
 --------------------------------------------
 -- FIX ME! the return value should be specified in the same currency
 -- and volume units, for now, it's just Double
-aggregateQuotes :: [Quote a] -> [(Double, Volume)]
+aggregateQuotes :: (Real v, RealFrac p) => [Quote p v tail] -> [(Cost p, Vol v)]
 aggregateQuotes xs = aggregate $ map quoteToPair xs
 
-quoteToPair :: Quote a -> (Price, Volume)
+quoteToPair :: Quote p v t -> (Price p, Vol v)
 quoteToPair (Quote {price = p, volume = v }) = (p, v)
 
 -- | Calculates "cumulative volume book"
-aggregate :: (Fractional cost, Real vol, RealFrac price) => [(price, vol)] -> [(cost, vol)]
+aggregate :: (Fractional c, Real v, RealFrac p) => [(Price p, Vol v)] -> [(Cost c, Vol v)]
 aggregate xs = aggregate' 0 0 xs
   where
     aggregate'
-      :: (Fractional cost, Real vol, RealFrac price)
-      => cost
-      -> vol
-      -> [(price, vol)]
-      -> [(cost,  vol)]
+      :: (Fractional c, Real v, RealFrac p)
+      => Cost c
+      -> Vol  v
+      -> [(Price p, Vol v)]
+      -> [(Cost  c, Vol v)]
     aggregate' _ _ [] = []
     aggregate' accC accV ((p,v):ls) =
       let accC' = accC + realToFrac (p * realToFrac v)
@@ -171,15 +186,15 @@ aggregate xs = aggregate' 0 0 xs
 -- FIX ME! this and `aggregate` are folds.
 -- List assumed to be *monotonically strictly increasing* in volume and cost
 -- **zero volume entries are NOT allowed even as first entry**
-disaggregate :: (Fractional price, Real vol, RealFrac cost) => [(cost, vol)] -> [(price, vol)]
+disaggregate :: (Fractional p, Real v, RealFrac c) => [(Cost c, Vol v)] -> [(Price p, Vol v)]
 disaggregate xs = disaggregate' 0 0 xs
   where
     disaggregate'
-      :: (Fractional price, Real vol, RealFrac cost)
-      => cost
-      -> vol
-      -> [(cost,  vol)]
-      -> [(price, vol)]
+      :: (Fractional p, Real v, RealFrac c)
+      => Cost c
+      -> Vol  v
+      -> [(Cost  c, Vol v)]
+      -> [(Price p, Vol v)]
     disaggregate' _ _ [] = []
     disaggregate' initC initV ((c,v):ls) =
       let p' = realToFrac ( (c - initC) / realToFrac v')
@@ -220,34 +235,34 @@ accumulate xs = accumulate' 0 0 xs
 -- price bid > price ask (strictly greater)
 -- returns the overall volume for which price bids > price asks
 
-findProfitableVolume :: [Quote a] -> [Quote b] -> Volume
+findProfitableVolume :: (Ord p, Ord v, Num v) => [Quote p v a] -> [Quote p v b] -> Vol v
 findProfitableVolume asks' bids' = findCrossover (map quoteToPair asks') (map quoteToPair bids')
 
 
 findCrossover
-    :: (Ord price, Num vol, Ord vol)
-    => [(price, vol)]
-    -> [(price, vol)]
-    -> vol
+    :: (Ord p, Num v, Ord v)
+    => [(Price p, Vol v)]
+    -> [(Price p, Vol v)]
+    -> Vol v
 findCrossover [] _ = 0  -- no more supply or demand
 findCrossover _ [] = 0
 
-findCrossover (ask:asks) (bid:bids)
-  | fst ask < fst bid =   --- (Price, Volume)
+findCrossover (a:as) (b:bs)
+  | fst a < fst b =   --- (Price, Volume)
       let
-          pa = fst ask -- price of ask
-          va = snd ask -- volume of ask
-          pb = fst bid -- price of bid
-          vb = snd bid -- volume of bid
+          pa = fst a -- price of ask
+          va = snd a -- volume of ask
+          pb = fst b -- price of bid
+          vb = snd b -- volume of bid
 
        in case compare va vb of
-            EQ -> va + findCrossover asks bids     -- perfect volume match
+            EQ -> va + findCrossover as bs     -- perfect volume match
 
             LT -> let leftover = ( pb , vb - va )  -- va was smaller, so we have left over volume in bids
-                   in va + findCrossover asks (leftover:bids)
+                   in va + findCrossover as (leftover:bs)
 
             GT -> let leftover = ( pa , va - vb )  -- vb was smaller, so we have left over volume in asks
-                   in vb + findCrossover (leftover:asks) bids
+                   in vb + findCrossover (leftover:as) bs
 
   | otherwise = 0
 
@@ -271,10 +286,10 @@ We assume vol parameter is non-negative.
 -}
 
 totalValue
-  :: (Ord vol, Real vol, Fractional cost)
-  => vol
-  -> [(cost, vol)]
-  -> Either (cost, vol) (cost, vol)
+  :: (Ord v, Real v, Fractional c)
+  => Vol v
+  -> [(Cost c, Vol v)]
+  -> Either (Cost c, Vol v) (Cost c, Vol v)
 totalValue 0 _  = Right (0, 0)
 totalValue _ [] = Left  (0, 0)
 -- list is not empty and v is not zero if we get here
@@ -310,7 +325,7 @@ totalValue vol xs =
 This function makes bids offer less money and asks request more money.
 In other words, they make things more expensive and mimic the fees we pay.
 -}
-shave :: Double -> Quote a -> Quote a
+shave :: (Real p, Fractional p) => Double -> Quote p v t -> Quote p v t
 shave fee quote =
   case quote of
     Quote Bid p v t -> Quote Bid (realToFrac (realToFrac p / fee)) v t
@@ -328,7 +343,13 @@ and the money wishes to have a rate of return of at least 'margin' per transacti
 
 -- FIX ME! This is clearly procedural... needs some TLC
 -- | availableProfit :: fee -> margin -> asks -> bids -> (profit,volume,cost)
-availableProfit :: Double -> Double -> [Quote a] -> [Quote b] -> (Cost, Volume, Cost)
+availableProfit
+    :: (Real p, Fractional p, RealFrac p, Ord v, Num v, Real v)
+    => Double
+    -> Double
+    -> [Quote p v a]
+    -> [Quote p v b]
+    -> (Cost p, Vol v, Cost p)
 availableProfit fee margin asks bids = (tap , vtap, cost)
   where
     -- Calculate initial estimate for profitable trading volume
@@ -365,12 +386,15 @@ availableProfit fee margin asks bids = (tap , vtap, cost)
 -- | Returns how much we have to pay or can get (i.e. the total cost or revenue) to buy/sell 1 Bitcoin
 --   from/to the given quotes (fixed 1 BTC constant makes this cost equal to the average price)
 --   This returns nothing if we can't get that much volume from the quotes
-getBestPrice :: [Quote a] -> Maybe Price
+getBestPrice
+    :: (Fractional p, RealFrac p, Real v)
+    => [Quote p v t]
+    -> Maybe (Price p)
 getBestPrice qs = case totalValue 1 (aggregateQuotes qs) of
         Left   _           -> Nothing
-        Right (cost, _vol) -> Just cost
+        Right (cost, _vol) -> Just $ realToFrac cost
 
 -- | returns the best price on this side of the book independent of volume
 -- (even if only 1 satoshi is available at this price, it's still the best price)
-getBestPrice' :: [Quote a] -> Maybe Price
+getBestPrice' :: [Quote p v t] -> Maybe (Price p)
 getBestPrice' = fmap price . safeHead

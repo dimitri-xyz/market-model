@@ -19,10 +19,10 @@ tests =
 
 ---------------------------- TESTS --------------------------------
 -- FIX ME! I'm getting double precision rounding error problems in aggregation/disaggregation.
-asksSample :: [(Price, Volume)]
+asksSample :: [(Price Double, Vol Bitcoin)]
 asksSample = [(256, 0.5),(512, 1),(576, 0.25)]
 
-roundTripAggregation :: [(Price,Volume)] -> Test
+roundTripAggregation :: [(Price Double, Vol Bitcoin)] -> Test
 roundTripAggregation samples = TestCase $
   do
     assertEqual "Aggregation followed by disaggregation is modifying list"
@@ -34,7 +34,7 @@ quoteBookEq = TestCase $ do
   assertBool  "Different prices but books compare equal"      (book /= book2)
   assertBool  "Different volumes but books compare equal"     (book /= book3)
 
-book, book', book2, book3 :: QuoteBook () ()
+book, book', book2, book3 :: QuoteBook USD Bitcoin () ()
 book = QuoteBook{ bids = [bid1, bid2]
                 , asks = [ask1]
                 , counter = ()}
@@ -43,7 +43,7 @@ book' = book { bids = [bid3]}
 book2 = book { asks = [ask2]}
 book3 = book { asks = [ask3]}
 
-bid1, bid2, bid3, ask1, ask2, ask3 :: Quote ()
+bid1, bid2, bid3, ask1, ask2, ask3 :: Quote USD Bitcoin ()
 bid1 = Quote { side = Bid, price = 600, volume = 0.7, qtail = ()}
 bid2 = Quote { side = Bid, price = 600, volume = 0.3, qtail = ()}
 bid3 = Quote { side = Bid, price = 600, volume = 1.0, qtail = ()}
@@ -52,7 +52,7 @@ ask1 = Quote { side = Ask, price = 1000, volume = 1,   qtail = ()}
 ask2 = Quote { side = Ask, price = 1001, volume = 1,   qtail = ()}
 ask3 = Quote { side = Ask, price = 1000, volume = 1.1, qtail = ()}
 
-getTotalValue :: [(Price,Volume)] -> Test
+getTotalValue :: [(Price Double, Vol Bitcoin)] -> Test
 getTotalValue samples = TestCase $ do
     assertEqual "Returned wrong value for requested volume"
         (Right (256*0.5+512*1+576*0.1, 1.6)) (totalValue 1.6 $ aggregate samples)
