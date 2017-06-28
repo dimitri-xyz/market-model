@@ -47,7 +47,7 @@ type AndOr vol cost = Either vol (Maybe vol, cost)
 type TransactionID = Word64
 type Timestamp     = Word64 -- in posix seconds
 
-newtype Wallet     = Wallet {address :: String} deriving (Show, Eq)
+newtype Wallet vol = Wallet {address :: String} deriving (Show, Eq)
 newtype TransferID = TransferID String          deriving (Show, Eq)
 -------------------
 
@@ -128,7 +128,7 @@ data Action price vol cost
         { acOrderID :: OrderID }
     | Transfer
         { acVolume     :: Vol vol
-        , acTransferTo :: Wallet
+        , acTransferTo :: Wallet vol
         }
     | PANIC String
     deriving (Eq, Show)
@@ -219,4 +219,4 @@ class Exchange config exception | config -> exception where
 
     getFunds :: config -> IO (Either exception (Cost cost, BTCVol vol, Timestamp))
 
-    transferBTC :: config -> vol -> Wallet -> IO (Either exception TransferID)
+    transfer :: config -> Vol vol -> Wallet vol -> IO (Either exception TransferID)
