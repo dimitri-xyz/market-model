@@ -17,8 +17,11 @@ import Bitcoin
 
 -------------------
 type    BTC = Bitcoin
-newtype LTC = LTC Bitcoin deriving (Show, Num, Fractional, Real, Eq, Ord)
-newtype USD = USD Double  deriving (Show, Num, Fractional, Real)
+newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, Eq, Ord)
+instance Show LTC where
+  show (LTC vol) = show vol
+
+newtype USD = USD Double  deriving (Num, Fractional, Real, Show)
 
 instance Eq USD where
   USD x == USD y = round2dp x == round2dp y
