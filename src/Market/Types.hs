@@ -1,4 +1,3 @@
--- {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -10,11 +9,11 @@ module Market.Types
   )
   where
 
-import Razao.Util
-import Bitcoin
-
 import Data.Word
 import Data.List
+
+import Razao.Util
+import Bitcoin
 
 -------------------
 newtype USD = USD Double deriving (Show, Num, Fractional, Real)
@@ -169,7 +168,7 @@ newtype OrderFill      p v c = OrderFilled  {toFills :: [Fill p v c]}           
 -------------------
 type FillID = Word64
 
-{- This representation is failing in tests because of extreme values
+{- The representation was failing in tests because of extreme values represented as Double
    I require 5dp precision in comparisons of the fee, but the fee is calculated based on the
    volume and price and for very large volumes (fees in the 1E8 range) the mantissa is just not big enough!
 -}
@@ -213,6 +212,6 @@ class Exchange config exception | config -> exception where
     -- timestamps are start and end time.
     getOrders :: config -> Maybe OrderSide -> Maybe Timestamp -> Maybe Timestamp -> IO (Either exception [Order p v c (Confirmation p v)])
 
-    getFunds :: config -> IO (Either exception (CurrencyVol cost, BTCVol vol, Timestamp))
+    getFunds :: config -> IO (Either exception (Cost cost, BTCVol vol, Timestamp))
 
     transferBTC :: config -> vol -> Wallet -> IO (Either exception TransferID)
