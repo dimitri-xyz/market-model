@@ -16,7 +16,9 @@ import Razao.Util
 import Bitcoin
 
 -------------------
-newtype USD = USD Double deriving (Show, Num, Fractional, Real)
+type    BTC = Bitcoin
+newtype LTC = LTC Bitcoin deriving (Show, Num, Fractional, Real, Eq, Ord)
+newtype USD = USD Double  deriving (Show, Num, Fractional, Real)
 
 instance Eq USD where
   USD x == USD y = round2dp x == round2dp y
