@@ -17,10 +17,11 @@ import Bitcoin
 
 -------------------
 type    BTC = Bitcoin
+-------------------
 newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, Eq, Ord)
 instance Show LTC where
   show (LTC vol) = show vol
-
+-------------------
 newtype USD = USD Double  deriving (Num, Fractional, Real, Show)
 
 instance Eq USD where
@@ -28,6 +29,30 @@ instance Eq USD where
 
 instance Ord USD where
   USD x `compare` USD y = round2dp x `compare` round2dp y
+-------------------
+newtype BRL = BRL Double  deriving (Show, Num, Fractional, Real)
+
+instance Eq BRL where
+  BRL x == BRL y = round5dp x == round5dp y
+
+instance Ord BRL where
+  BRL x `compare` BRL y = round5dp x `compare` round5dp y
+
+-------------------
+class Coin coin where
+  name :: coin -> String
+
+instance Coin USD where
+  name _ = "USD"
+
+instance Coin BRL where
+  name _ = "BRL"
+
+instance Coin BTC where
+  name _ = "BTC"
+
+instance Coin LTC where
+  name _ = "LTC"
 
 -------------------
 -- Units
