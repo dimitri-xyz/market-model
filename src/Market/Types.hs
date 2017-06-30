@@ -18,11 +18,11 @@ import Bitcoin
 -------------------
 type    BTC = Bitcoin
 -------------------
-newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, Eq, Ord)
+newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, RealFrac, Eq, Ord)
 instance Show LTC where
   show (LTC vol) = show vol
 -------------------
-newtype USD = USD Double  deriving (Num, Fractional, Real, Show)
+newtype USD = USD Double  deriving (Num, Fractional, Real, RealFrac, Show)
 
 instance Eq USD where
   USD x == USD y = round2dp x == round2dp y
@@ -30,7 +30,7 @@ instance Eq USD where
 instance Ord USD where
   USD x `compare` USD y = round2dp x `compare` round2dp y
 -------------------
-newtype BRL = BRL Double  deriving (Show, Num, Fractional, Real)
+newtype BRL = BRL Double  deriving (Show, Num, Fractional, Real, RealFrac)
 
 instance Eq BRL where
   BRL x == BRL y = round5dp x == round5dp y
@@ -57,9 +57,9 @@ instance Coin LTC where
 -------------------
 -- Units
 
-newtype Vol   a = Vol   a deriving (Show, Eq, Ord, Num, Fractional, Real)
-newtype Price a = Price a deriving (Show, Eq, Ord, Num, Fractional, Real)
-newtype Cost  a = Cost  a deriving (Show, Eq, Ord, Num, Fractional, Real)
+newtype Vol   a = Vol   a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac)
+newtype Price a = Price a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac)
+newtype Cost  a = Cost  a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac)
 
 type Revenue = Cost
 type Profit  = Revenue
