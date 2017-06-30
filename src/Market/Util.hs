@@ -344,7 +344,7 @@ and the money wishes to have a rate of return of at least 'margin' per transacti
 -- FIX ME! This is clearly procedural... needs some TLC
 -- | availableProfit :: fee -> margin -> asks -> bids -> (profit,volume,cost)
 availableProfit
-    :: (Real p, Fractional p, RealFrac p, Ord v, Num v, Real v)
+    :: (RealFrac p, Real v)
     => Double
     -> Double
     -> [Quote p v a]
@@ -387,7 +387,7 @@ availableProfit fee margin asks bids = (tap , vtap, cost)
 --   from/to the given quotes (fixed 1 BTC constant makes this cost equal to the average price)
 --   This returns nothing if we can't get that much volume from the quotes
 getBestPrice
-    :: (Fractional p, RealFrac p, Real v)
+    :: (RealFrac p, Real v)
     => [Quote p v t]
     -> Maybe (Price p)
 getBestPrice qs = case totalValue 1 (aggregateQuotes qs) of
