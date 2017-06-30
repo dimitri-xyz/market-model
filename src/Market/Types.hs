@@ -39,7 +39,7 @@ instance Ord BRL where
   BRL x `compare` BRL y = round5dp x `compare` round5dp y
 
 -------------------
-class Coin coin where
+class RealFrac coin => Coin coin where
   name :: coin -> String
 
 instance Coin USD where
