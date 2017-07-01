@@ -22,6 +22,10 @@ newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, RealFrac, Eq, Ord)
 instance Show LTC where
   show (LTC vol) = show vol
 -------------------
+newtype ETH = ETH CB.CoinScientific deriving (Eq, Ord, Num, Fractional, Real, RealFrac)
+instance Show ETH where
+  show (ETH vol) = show vol
+-------------------
 newtype USD = USD Double  deriving (Num, Fractional, Real, RealFrac, Show)
 
 instance Eq USD where
@@ -54,6 +58,8 @@ instance Coin BTC where
 instance Coin LTC where
   name _ = "LTC"
 
+instance Coin ETH where
+  name _ = "ETH"
 -------------------
 -- Units
 
