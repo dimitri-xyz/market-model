@@ -22,7 +22,8 @@ newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, RealFrac, Eq, Ord)
 instance Show LTC where
   show (LTC vol) = show vol
 -------------------
-newtype ETH = ETH CB.CoinScientific deriving (Eq, Ord, Num, Fractional, Real, RealFrac)
+-- FIX ME! This will do for now, but ether has more precision. decimal-arithmetic package is an option.
+newtype ETH = ETH Bitcoin deriving (Eq, Ord, Num, Fractional, Real, RealFrac)
 instance Show ETH where
   show (ETH vol) = show vol
 -------------------
