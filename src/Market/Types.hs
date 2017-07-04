@@ -51,7 +51,7 @@ instance Ord BRL where
   BRL x `compare` BRL y = round5dp x `compare` round5dp y
 
 -------------------
-class (NFData coin, RealFrac coin) => Coin coin where
+class (NFData coin, RealFrac coin, Show coin) => Coin coin where
   name :: coin -> String
 
 instance Coin USD where
