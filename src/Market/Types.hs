@@ -2,12 +2,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Market.Types
   ( module Market.Types
   , Bitcoin(..)
   )
   where
+
+import Control.DeepSeq
+import GHC.Generics (Generic)
 
 import Data.Word
 import Data.List
@@ -16,18 +21,20 @@ import Razao.Util
 import Bitcoin
 
 -------------------
+deriving instance NFData (Bitcoin)
+
 type    BTC = Bitcoin
 -------------------
-newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, RealFrac, Eq, Ord)
+newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, RealFrac, Eq, Ord, NFData)
 instance Show LTC where
   show (LTC vol) = show vol
 -------------------
 -- FIX ME! This will do for now, but ether has more precision. decimal-arithmetic package is an option.
-newtype ETH = ETH Bitcoin deriving (Eq, Ord, Num, Fractional, Real, RealFrac)
+newtype ETH = ETH Bitcoin deriving (Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
 instance Show ETH where
   show (ETH vol) = show vol
 -------------------
-newtype USD = USD Double  deriving (Num, Fractional, Real, RealFrac, Show)
+newtype USD = USD Double  deriving (Num, Fractional, Real, RealFrac, Show, NFData)
 
 instance Eq USD where
   USD x == USD y = round2dp x == round2dp y
@@ -35,7 +42,7 @@ instance Eq USD where
 instance Ord USD where
   USD x `compare` USD y = round2dp x `compare` round2dp y
 -------------------
-newtype BRL = BRL Double  deriving (Show, Num, Fractional, Real, RealFrac)
+newtype BRL = BRL Double  deriving (Show, Num, Fractional, Real, RealFrac, NFData)
 
 instance Eq BRL where
   BRL x == BRL y = round5dp x == round5dp y
@@ -44,7 +51,7 @@ instance Ord BRL where
   BRL x `compare` BRL y = round5dp x `compare` round5dp y
 
 -------------------
-class RealFrac coin => Coin coin where
+class (NFData coin, RealFrac coin) => Coin coin where
   name :: coin -> String
 
 instance Coin USD where
@@ -64,9 +71,9 @@ instance Coin ETH where
 -------------------
 -- Units
 
-newtype Vol   a = Vol   a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac)
-newtype Price a = Price a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac)
-newtype Cost  a = Cost  a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac)
+newtype Vol   a = Vol   a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
+newtype Price a = Price a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
+newtype Cost  a = Cost  a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
 
 type Revenue = Cost
 type Profit  = Revenue
@@ -83,7 +90,8 @@ newtype Wallet vol = Wallet {address :: String} deriving (Show, Eq)
 newtype TransferID = TransferID String          deriving (Show, Eq)
 -------------------
 
-data OrderSide = Bid | Ask deriving (Show, Eq, Enum, Ord)
+data OrderSide = Bid | Ask deriving (Show, Eq, Enum, Ord, Generic)
+instance NFData OrderSide
 
 data Quote p v tail
   = Quote
@@ -91,15 +99,18 @@ data Quote p v tail
     , price  :: Price p
     , volume :: Vol   v
     , qtail  :: tail
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
+
+instance (NFData p, NFData v, NFData t) => NFData (Quote p v t)
 
 data QuoteBook p v qtail counter
   = QuoteBook
     { bids::[Quote p v qtail]
     , asks::[Quote p v qtail]
     , counter :: counter
-    } deriving (Show)
+    } deriving (Show, Generic)
 
+instance (NFData p, NFData v, NFData t, NFData c) => NFData (QuoteBook p v t c)
 
 {-------------------------------------------------------------------------------
   NOTE: [Order book Comparison]
