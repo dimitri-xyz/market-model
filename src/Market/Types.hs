@@ -235,31 +235,3 @@ data Fill price vol
     , orderId      :: OrderID
     }
     deriving (Show, Ord, Eq)
-
----------------------------------------------------------------------
-class Exchange config exception | config -> exception where
-
-    -- to place limit orders
-    placeLimit :: config -> OrderSide -> Price price -> Vol vol -> IO (Either exception (Confirmation price vol))
-
-    -- to place market orders
-    -- This should fail with a run-time exception if a requested limiting
-    -- factor cannot be enforced at the exchange. For example, if the
-    -- client asks to limit the market order by overall cost, but the exchange
-    -- can only limit by volume.
-    placeMarket :: config -> OrderSide -> AndOr (Vol vol) (Cost price) -> IO (Either exception (Confirmation price vol))
-
-    -- | returns order info as it stood immediately AFTER cancellation; or an exception if it wasn't able to complete
-    --   the request for any other reason (i.e. order already canceled, already executed or network failure)
-    cancelOrder :: config -> OrderID -> IO (Either exception (Confirmation price vol))
-
-    -- | returns pending [Order] or an Exception if can't get that information
-    getPendingOrders :: config -> IO (Either exception [Order p v (Confirmation p v)])
-
-    -- | returns [Order] of the right type or an Exception if can't get that information. Maybe parameters are optional.
-    -- timestamps are start and end time.
-    getOrders :: config -> Maybe OrderSide -> Maybe Timestamp -> Maybe Timestamp -> IO (Either exception [Order p v (Confirmation p v)])
-
-    getFunds :: config -> IO (Either exception (Cost price, BTCVol vol, Timestamp))
-
-    transfer :: config -> Vol vol -> Wallet vol -> IO (Either exception TransferID)
