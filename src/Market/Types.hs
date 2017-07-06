@@ -159,14 +159,14 @@ normalizeQuotes xs = fmap coalesce xxs
 ------------------------ Actions -------------------------
 -- Actions that can be performed by trading strategies
 
-data Action price vol cost
+data Action price vol
     = NewLimitOrder
         { acSide    :: OrderSide
         , acPrice   :: Price price
         , acVolume  :: Vol   vol }
     | NewMarketOrder
         { acSide          :: OrderSide
-        , acVolAndOrFunds :: AndOr (Vol vol) (Cost cost)}
+        , acVolAndOrFunds :: AndOr (Vol vol) (Cost price)}
     | CancelLimitOrder
         { acOrderID :: OrderID }
     | Transfer
@@ -177,7 +177,7 @@ data Action price vol cost
     deriving (Eq, Show)
 
 type Reasoning = String
-data StrategyAdvice price vol cost = ToDo [Action price vol cost] Reasoning deriving (Show, Eq)
+data StrategyAdvice price vol = ToDo [Action price vol] Reasoning deriving (Show, Eq)
 
 
 ------------------------- Orders -------------------------
@@ -196,7 +196,7 @@ data Confirmation price vol
     }
     deriving (Show, Eq, Ord)
 
-data Order price vol cost ack
+data Order price vol ack
     = LimitOrder
         { oSide            :: OrderSide
         , limitPrice       :: Price price
@@ -205,14 +205,14 @@ data Order price vol cost ack
         }
     | MarketOrder
         { oSide            :: OrderSide
-        , volumeAndOrFunds :: AndOr (Vol vol) (Cost cost)
+        , volumeAndOrFunds :: AndOr (Vol vol) (Cost price)
         , aConfirmation    :: ack
         }
     deriving (Show, Eq, Ord)
 
-newtype OrderPlacement p v c = Placement    {toOrder :: Order p v c (Confirmation p v)} deriving (Show, Eq)
-newtype OrderCancellation    = Cancellation {toOID   :: OrderID}                        deriving (Show, Eq)
-newtype OrderFill      p v c = OrderFilled  {toFills :: [Fill p v c]}                   deriving (Show, Eq)
+newtype OrderPlacement p v = Placement    {toOrder :: Order p v (Confirmation p v)} deriving (Show, Eq)
+newtype OrderCancellation  = Cancellation {toOID   :: OrderID}                      deriving (Show, Eq)
+newtype OrderFill      p v = OrderFilled  {toFills :: [Fill p v]}                   deriving (Show, Eq)
 -------------------
 type FillID = Word64
 
@@ -221,7 +221,7 @@ type FillID = Word64
    volume and price and for very large volumes (fees in the 1E8 range) the mantissa is just not big enough!
 -}
 
-data Fill price vol cost
+data Fill price vol
   = Fill
     { fillID       :: FillID           -- must be unique
     , mFillTime    :: Maybe Timestamp  -- 'Maybe' here is *kinda* wrong, but the exchanges may not return
@@ -231,7 +231,7 @@ data Fill price vol cost
 
     , fillVolume   :: Vol   vol     -- the volume executed in this fill
     , fillPrice    :: Price price   -- the price that was actually used
-    , fillFee      :: Cost  cost    -- the fee charged for this transaction in dollars (or appropriate currency)
+    , fillFee      :: Cost  price   -- the fee charged for this transaction in dollars (or appropriate currency)
     , orderId      :: OrderID
     }
     deriving (Show, Ord, Eq)
@@ -247,19 +247,19 @@ class Exchange config exception | config -> exception where
     -- factor cannot be enforced at the exchange. For example, if the
     -- client asks to limit the market order by overall cost, but the exchange
     -- can only limit by volume.
-    placeMarket :: config -> OrderSide -> AndOr (Vol vol) (Cost cost) -> IO (Either exception (Confirmation price vol))
+    placeMarket :: config -> OrderSide -> AndOr (Vol vol) (Cost price) -> IO (Either exception (Confirmation price vol))
 
     -- | returns order info as it stood immediately AFTER cancellation; or an exception if it wasn't able to complete
     --   the request for any other reason (i.e. order already canceled, already executed or network failure)
     cancelOrder :: config -> OrderID -> IO (Either exception (Confirmation price vol))
 
     -- | returns pending [Order] or an Exception if can't get that information
-    getPendingOrders :: config -> IO (Either exception [Order p v c (Confirmation p v)])
+    getPendingOrders :: config -> IO (Either exception [Order p v (Confirmation p v)])
 
     -- | returns [Order] of the right type or an Exception if can't get that information. Maybe parameters are optional.
     -- timestamps are start and end time.
-    getOrders :: config -> Maybe OrderSide -> Maybe Timestamp -> Maybe Timestamp -> IO (Either exception [Order p v c (Confirmation p v)])
+    getOrders :: config -> Maybe OrderSide -> Maybe Timestamp -> Maybe Timestamp -> IO (Either exception [Order p v (Confirmation p v)])
 
-    getFunds :: config -> IO (Either exception (Cost cost, BTCVol vol, Timestamp))
+    getFunds :: config -> IO (Either exception (Cost price, BTCVol vol, Timestamp))
 
     transfer :: config -> Vol vol -> Wallet vol -> IO (Either exception TransferID)

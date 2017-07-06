@@ -80,32 +80,32 @@ showTopN n b =
 ----------------------------------------------
 
 isActive
-    :: (Show p, Show v, Show c)
-    => Order p v c (Confirmation p v) -> Bool
+    :: (Show p, Show v)
+    => Order p v (Confirmation p v) -> Bool
 isActive o =
   case mOrderStatus (aConfirmation o) of
     Just st  -> st == Active || st == ActivePartiallyExecuted
     Nothing -> error $ "Order Status unknown. Cannot determine if order is active. " ++ show o
 
-isBid :: Order price vol cost ack -> Bool
+isBid :: Order price vol ack -> Bool
 isBid = (== Bid) . oSide
 
-isAsk :: Order price vol cost ack -> Bool
+isAsk :: Order price vol ack -> Bool
 isAsk = (== Ask) . oSide
 
-isLimitOrder :: Order price vol cost ack -> Bool
+isLimitOrder :: Order price vol ack -> Bool
 isLimitOrder LimitOrder{} = True
 isLimitOrder _            = False
 
-getOrderID :: Order price vol cost (Confirmation price vol) -> OrderID
+getOrderID :: Order price vol (Confirmation price vol) -> OrderID
 getOrderID = orderID . aConfirmation
 
-sameOrderID :: OrderID -> Order price vol cost (Confirmation price vol) -> Bool
+sameOrderID :: OrderID -> Order price vol (Confirmation price vol) -> Bool
 sameOrderID oid order = (oid == getOrderID order)
 
 getDoneVol
-    :: (Show p, Show v, Show c)
-    => Order p v c (Confirmation p v)
+    :: (Show p, Show v)
+    => Order p v (Confirmation p v)
     -> Vol v
 getDoneVol order = case aConfirmation order of
     Conf { mExecuted = Just (_, vol)} -> vol
@@ -114,8 +114,8 @@ getDoneVol order = case aConfirmation order of
 ---------
 -- Market orders can be larger than the whole orderbook or limited by funds
 getOpenVol
-    :: (Show price, Show vol, Show cost, Num vol)
-    => Order price vol cost (Confirmation price vol)
+    :: (Show price, Show vol, Num vol)
+    => Order price vol (Confirmation price vol)
     -> Vol vol
 -- limit order: ok
 getOpenVol order@(LimitOrder{}) = limitVolume order - getDoneVol order
@@ -132,14 +132,14 @@ getOpenVol order@(MarketOrder{volumeAndOrFunds = Right (Nothing, _)}) =
 ---------
 
 getExecutedPrice
-    :: (Show price, Show vol, Show cost)
-    => Order price vol cost (Confirmation price vol)
+    :: (Show price, Show vol)
+    => Order price vol (Confirmation price vol)
     -> Price price
 getExecutedPrice order = case aConfirmation order of
     Conf { mExecuted = Just (p, _)} -> p
     _ -> error $ "Cannot determine already executed ave price in order without price info. " ++ show order
 
-attachConfirmation :: Order p v c ack -> (Confirmation p v) -> Order p v c (Confirmation p v)
+attachConfirmation :: Order p v ack -> (Confirmation p v) -> Order p v (Confirmation p v)
 attachConfirmation order conf = order { aConfirmation = conf }
 
 limitOrderMatches
@@ -147,7 +147,7 @@ limitOrderMatches
     => OrderSide
     -> Price p
     -> Vol v
-    -> Order p v c a
+    -> Order p v ack
     -> Bool
 limitOrderMatches oSide' p v order@(LimitOrder{}) =
     oSide       order == oSide' &&
@@ -166,15 +166,15 @@ quoteToPair :: Quote p v t -> (Price p, Vol v)
 quoteToPair (Quote {price = p, volume = v }) = (p, v)
 
 -- | Calculates "cumulative volume book"
-aggregate :: (Fractional c, Real v, RealFrac p) => [(Price p, Vol v)] -> [(Cost c, Vol v)]
+aggregate :: (Real v, RealFrac p) => [(Price p, Vol v)] -> [(Cost p, Vol v)]
 aggregate xs = aggregate' 0 0 xs
   where
     aggregate'
-      :: (Fractional c, Real v, RealFrac p)
-      => Cost c
+      :: (Real v, RealFrac p)
+      => Cost p
       -> Vol  v
       -> [(Price p, Vol v)]
-      -> [(Cost  c, Vol v)]
+      -> [(Cost  p, Vol v)]
     aggregate' _ _ [] = []
     aggregate' accC accV ((p,v):ls) =
       let accC' = accC + realToFrac (p * realToFrac v)
@@ -186,14 +186,14 @@ aggregate xs = aggregate' 0 0 xs
 -- FIX ME! this and `aggregate` are folds.
 -- List assumed to be *monotonically strictly increasing* in volume and cost
 -- **zero volume entries are NOT allowed even as first entry**
-disaggregate :: (Fractional p, Real v, RealFrac c) => [(Cost c, Vol v)] -> [(Price p, Vol v)]
+disaggregate :: (Real v, RealFrac p) => [(Cost p, Vol v)] -> [(Price p, Vol v)]
 disaggregate xs = disaggregate' 0 0 xs
   where
     disaggregate'
-      :: (Fractional p, Real v, RealFrac c)
-      => Cost c
+      :: (Real v, RealFrac p)
+      => Cost p
       -> Vol  v
-      -> [(Cost  c, Vol v)]
+      -> [(Cost  p, Vol v)]
       -> [(Price p, Vol v)]
     disaggregate' _ _ [] = []
     disaggregate' initC initV ((c,v):ls) =
@@ -286,10 +286,10 @@ We assume vol parameter is non-negative.
 -}
 
 totalValue
-  :: (Ord v, Real v, Fractional c)
+  :: (Ord v, Real v, Fractional p)
   => Vol v
-  -> [(Cost c, Vol v)]
-  -> Either (Cost c, Vol v) (Cost c, Vol v)
+  -> [(Cost p, Vol v)]
+  -> Either (Cost p, Vol v) (Cost p, Vol v)
 totalValue 0 _  = Right (0, 0)
 totalValue _ [] = Left  (0, 0)
 -- list is not empty and v is not zero if we get here
