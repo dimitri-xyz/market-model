@@ -213,6 +213,15 @@ data Order price vol ack
 newtype OrderPlacement p v = Placement    {toOrder :: Order p v (Confirmation p v)} deriving (Show, Eq)
 newtype OrderCancellation  = Cancellation {toOID   :: OrderID}                      deriving (Show, Eq)
 newtype OrderFill      p v = OrderFilled  {toFills :: [Fill p v]}                   deriving (Show, Eq)
+
+-- unifying wrapper for trading events
+data TradingE p v q c
+    = TP (OrderPlacement    p v)
+    | TC (OrderCancellation    )
+    | TF (OrderFill         p v)
+    | TB (QuoteBook         p v q c)
+    deriving (Show, Eq)
+
 -------------------
 type FillID = Word64
 
