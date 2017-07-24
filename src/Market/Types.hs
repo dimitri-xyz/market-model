@@ -216,10 +216,10 @@ newtype OrderFill      p v = OrderFilled  {toFills :: [Fill p v]}               
 
 -- unifying wrapper for trading events
 data TradingE p v q c
-    = TP (OrderPlacement    p v)
-    | TC (OrderCancellation    )
-    | TF (OrderFill         p v)
-    | TB (QuoteBook         p v q c)
+    = TP {toPlace  :: OrderPlacement    p v}
+    | TC {toCancel :: OrderCancellation    }
+    | TF {toFill   :: OrderFill         p v}
+    | TB {toBook   :: QuoteBook         p v q c}
     deriving (Show, Eq)
 
 -------------------
