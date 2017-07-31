@@ -400,3 +400,20 @@ getBestPrice qs = case totalValue 1 (aggregateQuotes qs) of
 -- (even if only 1 satoshi is available at this price, it's still the best price)
 getBestPrice' :: [Quote p v t] -> Maybe (Price p)
 getBestPrice' = fmap price . safeHead
+
+----------------------------------------
+-- | This function turns a market for BTC that is settled in dollars
+-- into a market for dollars that is settled in BTC
+--
+-- An order to buy     3 BTCs at   2000 USD/BTC each is equivalent to
+-- an order to sell 6000 USDs at 0.0005 BTC/USD each
+-- swapping volume and cost dominations and OrderSide "inverts" the orderbook.
+invertBook :: (RealFrac p, RealFrac v) => QuoteBook p v q c -> QuoteBook v p q c
+invertBook bk@(QuoteBook{ bids = bs, asks = as }) =
+    bk{ bids = invert <$> as
+      , asks = invert <$> bs }
+  where
+    invert q@(Quote{side = sd, price = p, volume = v}) =
+        q{ side   = case sd of {Bid -> Ask; Ask -> Bid}
+         , price  = realToFrac $ recip $ toRational p
+         , volume = realToFrac $ toRational v * toRational p }

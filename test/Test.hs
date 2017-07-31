@@ -16,6 +16,7 @@ tests =
     , TestLabel "Aggregate and disaggregate"   (roundTripAggregation asksSample)
     , TestLabel "Return Total Value"           (getTotalValue asksSample)
     , TestLabel "Fee worsening of book works"  (testFeeBook book shavedBook)
+    , TestLabel "Inverting orderbook works"    (invertOrderbook book invertedBook)
     ]
 
 ---------------------------- TESTS --------------------------------
@@ -51,6 +52,13 @@ shavedBook =
     , asks = [ask1']
     , counter = ()}
 
+invertedBook :: QuoteBook Bitcoin USD () ()
+invertedBook =
+  QuoteBook
+    { bids = [bid1'']
+    , asks = [ask1'', ask2'']
+    , counter = ()}
+
 bid1, bid2, bid3, ask1, ask2, ask3 :: Quote USD Bitcoin ()
 bid1 = Quote { side = Bid, price = 600, volume = 0.7, qtail = ()}
 bid2 = Quote { side = Bid, price = 600, volume = 0.3, qtail = ()}
@@ -65,6 +73,11 @@ bid1' = Quote { side = Bid, price =  600 / 1.007, volume = 0.7, qtail = ()}
 bid2' = Quote { side = Bid, price =  600 / 1.007, volume = 0.3, qtail = ()}
 ask1' = Quote { side = Ask, price = 1000 * 1.007, volume = 1,   qtail = ()}
 
+ask1'', ask2'', bid1'' :: Quote Bitcoin USD ()
+ask1'' = Quote { side = Ask, price =  1/600, volume = 0.7 *  600, qtail = ()}
+ask2'' = Quote { side = Ask, price =  1/600, volume = 0.3 *  600, qtail = ()}
+bid1'' = Quote { side = Bid, price = 1/1000, volume = 1   * 1000, qtail = ()}
+
 getTotalValue :: [(Price Double, Vol Bitcoin)] -> Test
 getTotalValue samples = TestCase $ do
     assertEqual "Returned wrong value for requested volume"
@@ -73,3 +86,7 @@ getTotalValue samples = TestCase $ do
 testFeeBook :: (Coin p, Coin v, Eq q, Show q, Show c) => QuoteBook p v q c -> QuoteBook p v q c -> Test
 testFeeBook sample result = TestCase $ do
     assertEqual "Applied fees mismatch expectation" result (feeBook 1.007 sample)
+
+invertOrderbook :: (Coin p, Coin v, Eq q, Show q, Show c) => QuoteBook p v q c -> QuoteBook v p q c -> Test
+invertOrderbook sample result = TestCase $ do
+    assertEqual "Applied fees mismatch expectation" result (invertBook sample)
