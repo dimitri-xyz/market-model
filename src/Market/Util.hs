@@ -157,8 +157,6 @@ limitOrderMatches oSide' p v order@(LimitOrder{}) =
 limitOrderMatches _s _p _v _ = False
 
 --------------------------------------------
--- FIX ME! the return value should be specified in the same currency
--- and volume units, for now, it's just Double
 aggregateQuotes :: (Real v, RealFrac p) => [Quote p v tail] -> [(Cost p, Vol v)]
 aggregateQuotes xs = aggregate $ map quoteToPair xs
 
@@ -331,6 +329,10 @@ shave fee quote =
     Quote Bid p v t -> Quote Bid (realToFrac (realToFrac p / fee)) v t
     Quote Ask p v t -> Quote Ask (realToFrac (realToFrac p * fee)) v t
 
+feeBook :: (Real p, Fractional p) => Double -> QuoteBook p v q c -> QuoteBook p v q c
+feeBook fee bk@(QuoteBook{ bids = bs, asks = as }) =
+    bk{ bids = shave fee <$> bs
+      , asks = shave fee <$> as }
 
 --------------------------------------------------------------------------------
 {- | returns:
