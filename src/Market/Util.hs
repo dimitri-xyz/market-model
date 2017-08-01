@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Market.Util where
 
 import Data.List.Extended
@@ -162,6 +164,9 @@ aggregateQuotes xs = aggregate $ map quoteToPair xs
 
 quoteToPair :: Quote p v t -> (Price p, Vol v)
 quoteToPair (Quote {price = p, volume = v }) = (p, v)
+
+toQuote :: OrderSide -> (Price p, Vol v) -> Quote p v ()
+toQuote sd (p, v) = Quote sd p v ()
 
 -- | Calculates "cumulative volume book"
 aggregate :: (Real v, RealFrac p) => [(Price p, Vol v)] -> [(Cost p, Vol v)]
@@ -408,12 +413,48 @@ getBestPrice' = fmap price . safeHead
 -- An order to buy     3 BTCs at   2000 USD/BTC each is equivalent to
 -- an order to sell 6000 USDs at 0.0005 BTC/USD each
 -- swapping volume and cost dominations and OrderSide "inverts" the orderbook.
-invertBook :: (RealFrac p, RealFrac v) => QuoteBook p v q c -> QuoteBook v p q c
-invertBook bk@(QuoteBook{ bids = bs, asks = as }) =
-    bk{ bids = invert <$> as
-      , asks = invert <$> bs }
+invert :: (RealFrac p, RealFrac v) => QuoteBook p v q c -> QuoteBook v p q c
+invert bk@(QuoteBook{ bids = bs, asks = as }) =
+    bk{ bids = invert' <$> as
+      , asks = invert' <$> bs }
   where
-    invert q@(Quote{side = sd, price = p, volume = v}) =
+    invert' q@(Quote{side = sd, price = p, volume = v}) =
         q{ side   = case sd of {Bid -> Ask; Ask -> Bid}
          , price  = realToFrac $ recip $ toRational p
          , volume = realToFrac $ toRational v * toRational p }
+
+----------------------------------------
+-- USD-BTC `merge` USD-LTC = BTC-LTC
+merge
+    :: forall p1 v1 q1 c1 v2 q2 c2.
+       (RealFrac p1, RealFrac v1, RealFrac v2)
+    => QuoteBook p1 v1 q1 c1
+    -> QuoteBook p1 v2 q2 c2
+    -> QuoteBook v1 v2 () ()
+merge bk1 bk2 =
+    QuoteBook
+        { bids = toQuote Bid <$> disaggregate (merge' 0 0 0 cumA1s cumB2s)
+        , asks = toQuote Ask <$> disaggregate (merge' 0 0 0 cumB1s cumA2s)
+        , counter = ()}
+  where
+    cumA1s, cumB1s :: [(Cost p1, Vol v1)]
+    cumA1s = aggregateQuotes (asks bk1)
+    cumB1s = aggregateQuotes (bids bk1)
+
+    cumA2s, cumB2s :: [(Cost p1, Vol v2)]
+    cumA2s = aggregateQuotes (asks bk2)
+    cumB2s = aggregateQuotes (bids bk2)
+
+    -- initial cost and volumes required as curves are cumulative
+    merge' :: Cost p1 -> Vol v1 -> Vol v2 -> [(Cost p1, Vol v1)] -> [(Cost p1, Vol v2)] -> [(Cost v1, Vol v2)]
+    merge' _ _ _ [] _ = []
+    merge' _ _ _ _ [] = []
+    merge' ic iv1 iv2 ((c1,v1):xs) ((c2,v2):ys)
+      | c1 == c2 = (realToFrac v1, v2) : merge' c1 v1 v2 xs ys
+      | c1 < c2  = let r   = toRational (c1 - ic) / toRational (c2 - ic)
+                       v2' = iv2 + realToFrac (r * toRational (v2 - iv2))
+                    in (realToFrac v1, v2') : merge' c1 v1 v2' xs ((c2,v2):ys)
+
+      | c1 > c2  = let r   = toRational (c2 - ic) / toRational (c1 - ic)
+                       v1' = iv1 + realToFrac (r * toRational (v1 - iv1))
+                    in (realToFrac v1', v2) : merge' c2 v1' v2 ((c1,v1):xs) ys
