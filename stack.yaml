@@ -1,7 +1,6 @@
 flags: {}
 packages:
 - '.'
-- 'dep/bitcoin-type'
 - location:
     git: https://github.com/dimitri-xyz/razao-base
     commit: 13d2d7508d48aff30a598c020945de5312124622

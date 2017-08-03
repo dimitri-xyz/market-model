@@ -1,3 +1,0 @@
-[submodule "dep/bitcoin-type"]
-	path = dep/bitcoin-type
-	url = https://github.com/dimitri-xyz/bitcoin-type

@@ -7,7 +7,7 @@
 
 module Market.Types
   ( module Market.Types
-  , Bitcoin(..)
+  , BTC(..)
   )
   where
 
@@ -16,39 +16,61 @@ import GHC.Generics (Generic)
 
 import Data.Word
 import Data.List
+import Data.Fixed
 
 import Razao.Util
-import Bitcoin
 
 -------------------
-deriving instance NFData (Bitcoin)
+-- Helpers from Data.Fixed
+data E8
+instance HasResolution E8 where
+    resolution _ = 100000000
 
-type    BTC = Bitcoin
+data E5
+instance HasResolution E5 where
+    resolution _ = 100000
+
 -------------------
-newtype LTC = LTC Bitcoin deriving (Num, Fractional, Real, RealFrac, Eq, Ord, NFData)
+newtype BTC = BTC Double deriving (Num, Fractional, Real, RealFrac, NFData)
+instance Eq BTC where
+  BTC x == BTC y = round8dp x == round8dp y
+instance Ord BTC where
+  BTC x `compare` BTC y = round8dp x `compare` round8dp y
+instance Show BTC where
+    show (BTC x) = show (realToFrac (round8dp x) :: Fixed E8)
+
+-------------------
+newtype LTC = LTC Double deriving (Num, Fractional, Real, RealFrac, NFData)
+instance Eq LTC where
+  LTC x == LTC y = round8dp x == round8dp y
+instance Ord LTC where
+  LTC x `compare` LTC y = round8dp x `compare` round8dp y
 instance Show LTC where
-  show (LTC vol) = show vol
+    show (LTC x) = show (realToFrac (round8dp x) :: Fixed E8)
+
 -------------------
 -- FIX ME! This will do for now, but ether has more precision. decimal-arithmetic package is an option.
-newtype ETH = ETH Bitcoin deriving (Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
+newtype ETH = ETH Double deriving (Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
 instance Show ETH where
   show (ETH vol) = show vol
--------------------
-newtype USD = USD Double  deriving (Num, Fractional, Real, RealFrac, Show, NFData)
 
+-------------------
+newtype USD = USD Double deriving (Num, Fractional, Real, RealFrac, NFData)
 instance Eq USD where
   USD x == USD y = round2dp x == round2dp y
-
 instance Ord USD where
   USD x `compare` USD y = round2dp x `compare` round2dp y
--------------------
-newtype BRL = BRL Double  deriving (Show, Num, Fractional, Real, RealFrac, NFData)
+instance Show USD where
+    show (USD x) = show (realToFrac (round2dp x) :: Fixed E2)
 
+-------------------
+newtype BRL = BRL Double deriving (Num, Fractional, Real, RealFrac, NFData)
 instance Eq BRL where
   BRL x == BRL y = round5dp x == round5dp y
-
 instance Ord BRL where
   BRL x `compare` BRL y = round5dp x `compare` round5dp y
+instance Show BRL where
+    show (BRL x) = show (realToFrac (round5dp x) :: Fixed E5)
 
 -------------------
 class (NFData coin, RealFrac coin, Show coin) => Coin coin where
