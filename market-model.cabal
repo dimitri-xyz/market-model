@@ -6,7 +6,7 @@ homepage:            https://github.com/dimitri-xyz/market-model#readme
 author:              Dimitri DeFigueiredo
 maintainer:          defigueiredo@ucdavis.edu
 copyright:           2017 Dimitri DeFigueiredo
-license:             AGPL
+license:             BSD3
 license-file:        LICENSE
 category:            finance
 build-type:          Simple
