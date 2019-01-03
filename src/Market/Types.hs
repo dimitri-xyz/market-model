@@ -11,6 +11,7 @@ module Market.Types
   )
   where
 
+import Control.Applicative
 import Control.DeepSeq
 import GHC.Generics (Generic)
 
@@ -185,12 +186,14 @@ data Action price vol
     = NewLimitOrder
         { acSide    :: OrderSide
         , acPrice   :: Price price
-        , acVolume  :: Vol   vol }
+        , acVolume  :: Vol   vol
+        , acmClientOID :: Maybe OrderID }
     | NewMarketOrder
         { acSide          :: OrderSide
-        , acVolAndOrFunds :: AndOr (Vol vol) (Cost price)}
+        , acVolAndOrFunds :: AndOr (Vol vol) (Cost price)
+        , acmClientOID    :: Maybe OrderID }
     | CancelLimitOrder
-        { acOrderID :: OrderID }
+        { acClientOID     :: OrderID }
     | Transfer
         { acVolume     :: Vol vol
         , acTransferTo :: Wallet vol
@@ -199,7 +202,16 @@ data Action price vol
     deriving (Eq, Show)
 
 type Reasoning = String
-data StrategyAdvice price vol = ToDo [Action price vol] Reasoning deriving (Show, Eq)
+newtype StrategyAdvice action = Advice (Reasoning, ZipList action) deriving (Show, Eq)
+
+-- FIX ME! should just derive these, but...
+instance Functor StrategyAdvice where
+    fmap f (Advice (r, as)) = Advice (r, fmap f as)
+
+instance Applicative StrategyAdvice where
+    pure a = Advice (mempty, pure a)
+    liftA2 f (Advice (l, as)) (Advice (r, bs)) = Advice (l <> r, liftA2 f as bs)
+
 
 
 ------------------------- Orders -------------------------

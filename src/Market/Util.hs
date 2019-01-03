@@ -357,17 +357,17 @@ availableProfit
     -> [Quote p v a]
     -> [Quote p v b]
     -> (Cost p, Vol v, Cost p)
-availableProfit fee margin asks bids = (tap , vtap, cost)
+availableProfit fee margin as bs = (tap , vtap, cost)
   where
     -- Calculate initial estimate for profitable trading volume
     -- at requested margin of return on investment.
-    profitableBids     = map (shave fee) bids
+    profitableBids     = map (shave fee) bs
     profitableAtMargin = map (shave margin) profitableBids
     -- initial estimate (may be smaller)
-    vtap'              = findProfitableVolume asks profitableAtMargin
+    vtap'              = findProfitableVolume as profitableAtMargin
 
     -- Calculate available volumes
-    aggCosts           = aggregateQuotes asks
+    aggCosts           = aggregateQuotes as
     aggRevenues        = aggregateQuotes profitableBids
     ( _ , cVol')       = case (totalValue vtap' aggCosts) of
                             Left  costPair -> costPair
