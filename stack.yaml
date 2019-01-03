@@ -6,6 +6,12 @@ packages:
     commit: 5fc12c80aab9757f3aa1202d1abd4a7e172922df
   extra-dep: true
 
-resolver: lts-12.21
-extra-deps:
-- reactive-banana-1.2.0.0
+- location:
+    git: https://github.com/HeinrichApfelmus/reactive-banana
+    commit: 37d17de83bfa656ca20dc03457eeff0a2c33b6bf
+  extra-dep: true
+  subdirs:
+  - reactive-banana
+
+
+resolver: lts-13.1
