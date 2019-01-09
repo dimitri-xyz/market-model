@@ -18,6 +18,7 @@ import GHC.Generics (Generic)
 import Data.Word
 import Data.List
 import Data.Fixed
+import Data.Hashable
 
 import Razao.Util
 
@@ -32,7 +33,7 @@ instance HasResolution E5 where
     resolution _ = 100000
 
 -------------------
-newtype BTC = BTC Double deriving (Num, Fractional, Real, RealFrac, NFData)
+newtype BTC = BTC Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
 instance Eq BTC where
   BTC x == BTC y = round8dp x == round8dp y
 instance Ord BTC where
@@ -41,7 +42,7 @@ instance Show BTC where
     show (BTC x) = show (realToFrac (round8dp x) :: Fixed E8)
 
 -------------------
-newtype LTC = LTC Double deriving (Num, Fractional, Real, RealFrac, NFData)
+newtype LTC = LTC Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
 instance Eq LTC where
   LTC x == LTC y = round8dp x == round8dp y
 instance Ord LTC where
@@ -51,12 +52,12 @@ instance Show LTC where
 
 -------------------
 -- FIX ME! This will do for now, but ether has more precision. decimal-arithmetic package is an option.
-newtype ETH = ETH Double deriving (Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
+newtype ETH = ETH Double deriving (Eq, Ord, Num, Fractional, Real, RealFrac, NFData, Hashable)
 instance Show ETH where
   show (ETH vol) = show vol
 
 -------------------
-newtype USD = USD Double deriving (Num, Fractional, Real, RealFrac, NFData)
+newtype USD = USD Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
 instance Eq USD where
   USD x == USD y = round2dp x == round2dp y
 instance Ord USD where
@@ -65,7 +66,7 @@ instance Show USD where
     show (USD x) = show (realToFrac (round2dp x) :: Fixed E2)
 
 -------------------
-newtype BRL = BRL Double deriving (Num, Fractional, Real, RealFrac, NFData)
+newtype BRL = BRL Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
 instance Eq BRL where
   BRL x == BRL y = round5dp x == round5dp y
 instance Ord BRL where
@@ -74,7 +75,7 @@ instance Show BRL where
     show (BRL x) = show (realToFrac (round5dp x) :: Fixed E5)
 
 -------------------
-class (NFData coin, RealFrac coin, Show coin) => Coin coin where
+class (NFData coin, RealFrac coin, Show coin, Hashable coin) => Coin coin where
   name :: coin -> String
 
 instance Coin USD where
@@ -94,9 +95,9 @@ instance Coin ETH where
 -------------------
 -- Units
 
-newtype Vol   a = Vol   a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
-newtype Price a = Price a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
-newtype Cost  a = Cost  a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData)
+newtype Vol   a = Vol   a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData, Hashable)
+newtype Price a = Price a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData, Hashable)
+newtype Cost  a = Cost  a deriving (Show, Eq, Ord, Num, Fractional, Real, RealFrac, NFData, Hashable)
 
 type Revenue = Cost
 type Profit  = Revenue
@@ -115,6 +116,8 @@ newtype TransferID = TransferID String          deriving (Show, Eq)
 
 data OrderSide = Bid | Ask deriving (Show, Eq, Enum, Ord, Generic)
 instance NFData OrderSide
+instance Hashable OrderSide where
+    hashWithSalt = hashUsing fromEnum
 
 data Quote p v tail
   = Quote
@@ -203,6 +206,14 @@ data Action price vol
 
 type Reasoning = String
 newtype StrategyAdvice action = Advice (Reasoning, ZipList action) deriving (Show, Eq)
+
+-- We may need to refine this in the future if we are to combine orders 
+-- between themselves before issuing them.
+instance Semigroup (StrategyAdvice action) where
+    Advice (l, ZipList ls) <> Advice (r, ZipList rs) = Advice (l <> r, ZipList (ls <> rs))
+
+instance Monoid (StrategyAdvice action) where
+    mempty = Advice ("", ZipList [])
 
 -- FIX ME! should just derive these, but...
 instance Functor StrategyAdvice where
