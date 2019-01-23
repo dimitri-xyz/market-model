@@ -226,7 +226,9 @@ instance Applicative StrategyAdvice where
 
 
 ------------------------- Orders -------------------------
-data OrderID = OID { hw :: Word64, lw :: Word64 } deriving (Show, Eq, Ord)
+data OrderID = OID { hw :: Word64, lw :: Word64 } deriving (Show, Eq, Ord, Generic)
+
+instance Hashable OrderID
 
 -- | This is a *partition* of the OrderStatus space
 data OrderStatus = Active | Inactive | ActivePartiallyExecuted deriving (Show, Eq, Enum, Ord)
