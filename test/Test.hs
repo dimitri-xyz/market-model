@@ -5,6 +5,7 @@ import Test.HUnit
 
 import Market.Types
 import Market.Util
+import Market.Coins
 
 ---------------------------------------
 main :: IO Counts

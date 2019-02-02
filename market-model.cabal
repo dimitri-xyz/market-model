@@ -17,6 +17,7 @@ library
   hs-source-dirs:     src
   exposed-modules:    Market.Types
                     , Market.Util
+                    , Market.Coins
 
   default-language:   Haskell2010
   build-depends:      base
