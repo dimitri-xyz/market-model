@@ -8,7 +8,20 @@ import Razao.Util
 import Control.DeepSeq
 import Data.Hashable
 
--------------------
+import Market.Types
+
+{- | This module introduces default definitions for crypto coin types.
+Importing this module is optional. These types have been useful, but have
+limitations and may not be suitable for all situations (such is the "joy"
+of dealing with numeric types).
+
+If you can afford the speed hit, I strongly suggest just using the standard
+`Rational` (i.e. Ratio Integer). This allows you to avoid ever having to deal
+with the nuissance of rounding errors (which are especially annoying while
+testing).
+-}
+
+---------------------------------------------------------
 -- Helpers from Data.Fixed
 data E8
 instance HasResolution E8 where
@@ -61,12 +74,6 @@ instance Show BRL where
     show (BRL x) = show (realToFrac (round5dp x) :: Fixed E5)
 
 -------------------
-class (NFData coin, RealFrac coin, Show coin, Hashable coin) => Coin coin where
-  coinSymbol :: coin -> String
-  showBare   :: coin -> String
-  readBare   :: String -> coin
-
-
 instance Coin USD where
   coinSymbol _ = "USD"
 

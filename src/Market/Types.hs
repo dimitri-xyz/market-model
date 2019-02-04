@@ -11,6 +11,13 @@ import GHC.Generics (Generic)
 import Data.Word
 import Data.List
 import Data.Hashable
+
+-------------------
+class (Show coin, RealFrac coin, NFData coin, Hashable coin) => Coin coin where
+  coinSymbol :: coin -> String
+  showBare   :: coin -> String
+  readBare   :: String -> coin
+
 -------------------
 -- Units
 
@@ -31,8 +38,8 @@ type Timestamp     = Word64 -- in posix seconds
 
 newtype Wallet vol = Wallet {address :: String} deriving (Show, Eq)
 newtype TransferID = TransferID String          deriving (Show, Eq)
--------------------
 
+-------------------
 data OrderSide = Bid | Ask deriving (Show, Eq, Enum, Ord, Generic)
 instance NFData OrderSide
 instance Hashable OrderSide where
