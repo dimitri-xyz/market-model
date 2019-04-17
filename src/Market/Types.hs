@@ -133,7 +133,7 @@ data Action price vol
 type Reasoning = String
 newtype StrategyAdvice action = Advice (Reasoning, ZipList action) deriving (Show, Eq)
 
--- We may need to refine this in the future if we are to combine orders 
+-- We may need to refine this in the future if we are to combine orders
 -- between themselves before issuing them.
 instance Semigroup (StrategyAdvice action) where
     Advice (l, ZipList ls) <> Advice (r, ZipList rs) = Advice (l <> r, ZipList (ls <> rs))

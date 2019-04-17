@@ -51,9 +51,13 @@ instance Show LTC where
 
 -------------------
 -- FIX ME! This will do for now, but ether has more precision. decimal-arithmetic package is an option.
-newtype ETH = ETH Double deriving (Eq, Ord, Num, Fractional, Real, RealFrac, NFData, Hashable)
+newtype ETH = ETH Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
+instance Eq ETH where
+  ETH x == ETH y = round8dp x == round8dp y
+instance Ord ETH where
+  ETH x `compare` ETH y = round8dp x `compare` round8dp y
 instance Show ETH where
-  show (ETH vol) = show vol
+  show (ETH x) = show (realToFrac (round8dp x) :: Fixed E8)
 
 -------------------
 newtype USD = USD Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
