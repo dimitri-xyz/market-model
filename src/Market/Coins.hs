@@ -69,6 +69,15 @@ instance Show USD where
     show (USD x) = show (realToFrac (round2dp x) :: Fixed E2)
 
 -------------------
+newtype USDT = USDT Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
+instance Eq USDT where
+  USDT x == USDT y = round2dp x == round2dp y
+instance Ord USDT where
+  USDT x `compare` USDT y = round2dp x `compare` round2dp y
+instance Show USDT where
+    show (USDT x) = show (realToFrac (round2dp x) :: Fixed E2)
+
+-------------------
 newtype BRL = BRL Double deriving (Num, Fractional, Real, RealFrac, NFData, Hashable)
 instance Eq BRL where
   BRL x == BRL y = round5dp x == round5dp y
@@ -80,6 +89,9 @@ instance Show BRL where
 -------------------
 instance Coin USD where
   coinSymbol _ = "USD"
+
+instance Coin USDT where
+  coinSymbol _ = "USDT"
 
 instance Coin BRL where
   coinSymbol _ = "BRL"
