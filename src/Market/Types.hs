@@ -111,6 +111,7 @@ normalizeQuotes xs = fmap coalesce xxs
 ------------------------ Actions -------------------------
 -- Actions that can be performed by trading strategies
 
+{-# DEPRECATED Action "Please use Action type defined at Market.Interface instead" #-}
 data Action price vol
     = NewLimitOrder
         { acSide    :: OrderSide

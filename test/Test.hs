@@ -157,8 +157,8 @@ unstableOrderbook
     => QuoteBook p1 v1 () ()
     -> QuoteBook v1 v2 () ()
     -> Test
-unstableOrderbook bk1 bk2 = TestCase $ do
-    let bk = feeBook (1.007 * 1.0025 * 1.007) $ merge (invert bk1) bk2
+unstableOrderbook quoteBook1 quoteBook2 = TestCase $ do
+    let bk = feeBook (1.007 * 1.0025 * 1.007) $ merge (invert quoteBook1) quoteBook2
         a' = fromMaybe 99999 (getBestPrice' (asks bk))
     assertEqual "Merged orderbook ask does not match" 143.63699 a'
 
