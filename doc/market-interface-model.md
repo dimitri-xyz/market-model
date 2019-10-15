@@ -19,10 +19,10 @@ The Actions are:
 data Action
     = PlaceLimit
     | PlaceMarket
-    | CancelLimit
+    | CancelOrder
 ```
 
-**Actions are assumed to eventually succeed.** They need not execute immediately, but the exchange will eventually get the request. Hopefully, in a timely manner, but the is no hard guarantee of timeliness (best effort).
+**Actions are assumed to eventually succeed.** They need not execute immediately, but the exchange will eventually get the request. Hopefully, in a timely manner, but the is no hard guarantee of timeliness (best effort). Requests to cancel orders are guaranteed to be made, not guaranteed to ensure cancellation (as this is a race against the market).
 
 Strategies can place and cancel orders by using the corresponding Actions.
 
@@ -82,7 +82,7 @@ For example: The frameworks makes no assurance that every single change to the o
 
 1. **PlaceLimit** - Requests that a limit order be placed on the market. At a minimum, specifies a `ClientOID`, side, price and volume.
 2. **PlaceMarket** - Requests that a market order be placed on the market. At a minimum, specifies a `ClientOID`, side and volume.
-2. **CancelLimit** - Requests that an order be cancelled. At a minimum, specifies the `ClientOID`.
+2. **CancelOrder** - Requests that an order be cancelled. At a minimum, specifies the `ClientOID`.
 
 #### Action Sequencing
 
@@ -106,3 +106,6 @@ orderID <-> ClientOID mappings once the orders were fully executed or it had to 
 )
 
 (UPDATE 2019-09-27: Finally had to add them. Market order are in! Yay! :-D )
+
+(UPDATE 2019-10-15: Renamed `CancelLimit` actions `CancelOrder`)
+They may also now apply to market orders. Asking for market orders to be cancelled may be pointless as such orders execute immediately, but there's little harm in allowing the request based solely on the COID as cancellations requests provide no guarantees. Cancelling market orders may be possible if they are still in the pipeline.

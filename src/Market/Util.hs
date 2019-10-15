@@ -120,16 +120,16 @@ getOpenVol
     => Order price vol (Confirmation price vol)
     -> Vol vol
 -- limit order: ok
-getOpenVol order@(LimitOrder{}) = limitVolume order - getDoneVol order
+getOpenVol order@LimitOrder{} = limitVolume order - getDoneVol order
 
 -- market order *only* limited by Volume: ok
-getOpenVol order@(MarketOrder{volumeAndOrFunds = Left v}) = v - getDoneVol order
+getOpenVol order@MarketOrder{volumeAndOrFunds = Left v} = v - getDoneVol order
 
 -- market order *also* limited by Funds: we get an upper bound
-getOpenVol order@(MarketOrder{volumeAndOrFunds = Right (Just v, _)}) = v - getDoneVol order
+getOpenVol order@MarketOrder{volumeAndOrFunds = Right (Just v, _)} = v - getDoneVol order
 
 -- market order *only* limited by Funds: error
-getOpenVol order@(MarketOrder{volumeAndOrFunds = Right (Nothing, _)}) =
+getOpenVol order@MarketOrder{volumeAndOrFunds = Right (Nothing, _)} =
   error $ "Cannot determine open volume for market order without volume constraint. " ++ show order
 ---------
 
@@ -141,7 +141,7 @@ getExecutedPrice order = case aConfirmation order of
     Conf { mExecuted = Just (p, _)} -> p
     _ -> error $ "Cannot determine already executed ave price in order without price info. " ++ show order
 
-attachConfirmation :: Order p v ack -> (Confirmation p v) -> Order p v (Confirmation p v)
+attachConfirmation :: Order p v ack -> Confirmation p v -> Order p v (Confirmation p v)
 attachConfirmation order conf = order { aConfirmation = conf }
 
 limitOrderMatches
@@ -151,7 +151,7 @@ limitOrderMatches
     -> Vol v
     -> Order p v ack
     -> Bool
-limitOrderMatches oSide' p v order@(LimitOrder{}) =
+limitOrderMatches oSide' p v order@LimitOrder{} =
     oSide       order == oSide' &&
     limitPrice  order == p      &&
     limitVolume order == v
@@ -163,7 +163,7 @@ aggregateQuotes :: (Real v, RealFrac p) => [Quote p v tail] -> [(Cost p, Vol v)]
 aggregateQuotes xs = aggregate $ map quoteToPair xs
 
 quoteToPair :: Quote p v t -> (Price p, Vol v)
-quoteToPair (Quote {price = p, volume = v }) = (p, v)
+quoteToPair Quote {price = p, volume = v } = (p, v)
 
 toQuote :: OrderSide -> (Price p, Vol v) -> Quote p v ()
 toQuote sd (p, v) = Quote sd p v ()
@@ -335,7 +335,7 @@ shave fee quote =
     Quote Ask p v t -> Quote Ask (realToFrac (realToFrac p * fee)) v t
 
 feeBook :: (Real p, Fractional p) => Double -> QuoteBook p v q c -> QuoteBook p v q c
-feeBook fee bk@(QuoteBook{ bids = bs, asks = as }) =
+feeBook fee bk@QuoteBook{ bids = bs, asks = as } =
     bk{ bids = shave fee <$> bs
       , asks = shave fee <$> as }
 
@@ -369,20 +369,20 @@ availableProfit fee margin as bs = (tap , vtap, cost)
     -- Calculate available volumes
     aggCosts           = aggregateQuotes as
     aggRevenues        = aggregateQuotes profitableBids
-    ( _ , cVol')       = case (totalValue vtap' aggCosts) of
+    ( _ , cVol')       = case totalValue vtap' aggCosts of
                             Left  costPair -> costPair
                             Right costPair -> costPair
-    ( _ , rVol')       = case (totalValue vtap' aggRevenues) of
+    ( _ , rVol')       = case totalValue vtap' aggRevenues of
                             Left  revPair -> revPair
                             Right revPair -> revPair
     -- viable volume = minimum of 3 available volumes
     vtap               = minimum [vtap', cVol', rVol']
 
     -- recalculate with correct volume
-    ( cost , _ )    = case (totalValue vtap aggCosts) of
+    ( cost , _ )    = case totalValue vtap aggCosts of
                             Left  costPair -> costPair
                             Right costPair -> costPair
-    ( revenue , _ ) = case (totalValue vtap aggRevenues) of
+    ( revenue , _ ) = case totalValue vtap aggRevenues of
                             Left  revPair -> revPair
                             Right revPair -> revPair
 
@@ -414,11 +414,11 @@ getBestPrice' = fmap price . safeHead
 -- an order to sell 6000 USDs at 0.0005 BTC/USD each
 -- swapping volume and cost dominations and OrderSide "inverts" the orderbook.
 invert :: (RealFrac p, RealFrac v) => QuoteBook p v q c -> QuoteBook v p q c
-invert bk@(QuoteBook{ bids = bs, asks = as }) =
+invert bk@QuoteBook{ bids = bs, asks = as } =
     bk{ bids = invert' <$> as
       , asks = invert' <$> bs }
   where
-    invert' q@(Quote{side = sd, price = p, volume = v}) =
+    invert' q@Quote{side = sd, price = p, volume = v} =
         q{ side   = case sd of {Bid -> Ask; Ask -> Bid}
          , price  = realToFrac $ recip $ toRational p
          , volume = realToFrac $ toRational v * toRational p }

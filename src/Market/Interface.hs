@@ -18,18 +18,19 @@ module Market.Interface
     ) where
 
 import Data.Hashable
-import Market.Types ( Price(..)
-                    , Vol(..)
-                    , Cost(..)
-                    , OrderSide(..)
-                    , Quote(..)
-                    , QuoteBook(..)
-                    , StrategyAdvice(..)
-                    , Coin
-                    , coinSymbol
-                    , showBare
-                    , readBare
-                    )
+import Market.Types
+    ( Price(..)
+    , Vol(..)
+    , Cost(..)
+    , OrderSide(..)
+    , Quote(..)
+    , QuoteBook(..)
+    , StrategyAdvice(..)
+    , Coin
+    , coinSymbol
+    , showBare
+    , readBare
+    )
 
 ---------------------------------------
 -- Market/Strategy Interface
@@ -63,7 +64,7 @@ data Action price vol
         { aSide  :: OrderSide
         , aVol   :: Vol   vol
         , aCOID  :: ClientOID }
-    | CancelLimit
+    | CancelOrder
         { aCOID  :: ClientOID }
     deriving (Show, Eq)
 
